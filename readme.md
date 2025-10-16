@@ -24,8 +24,8 @@ Grading
 ## Team Info
 | Student Number | Student Name | Student Email |
 |-|-|-|
-|(STUDENT NUMBER HERE)| (STUDENT NAME HERE)| (STUDENT EMAIL HERE) |
-|(STUDENT NUMBER HERE)| (STUDENT NAME HERE)| (STUDENT EMAIL HERE) |
+|(802-23-3598)| (Valeria Pagan)| (valeria.pagan7@upr.edu) |
+|(802-25-2340)| (Sergio Caquimbo)| (sergio.caquimbo@upr.edu) |
 
 ---
 
