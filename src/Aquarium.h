@@ -80,7 +80,14 @@ public:
     NPCreature(float x, float y, int speed, std::shared_ptr<GameSprite> sprite);
     AquariumCreatureType GetType() {return this->m_creatureType;}
     void move() override;
+
     void draw() const override;
+    void setDirection(float dx, float dy){
+        m_dx = dx;
+        m_dy = dy;
+        normalize();
+    }
+
 protected:
     AquariumCreatureType m_creatureType;
 
@@ -91,6 +98,11 @@ public:
     BiggerFish(float x, float y, int speed, std::shared_ptr<GameSprite> sprite);
     void move() override;
     void draw() const override;
+    void setDirection(float dx, float dy){
+        m_dx = dx;
+        m_dy = dy;
+        normalize();
+    }
 };
 
 

@@ -100,6 +100,12 @@ public:
     void setBounds(int w, int h);
     void normalize();
     void bounce();
+
+    void setDirection(float dx, float dy){
+        m_dx = dx;
+        m_dy = dy;
+        normalize();
+    }
 };
 
 // GameEvents

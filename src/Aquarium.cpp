@@ -27,7 +27,7 @@ void PlayerCreature::setDirection(float dx, float dy) {
 void PlayerCreature::move() {
     m_x += m_dx * m_speed;
     m_y += m_dy * m_speed;
-    this->bounce();
+    bounce();
 }
 
 void PlayerCreature::reduceDamageDebounce() {
@@ -74,8 +74,11 @@ void PlayerCreature::loseLife(int debounce) {
 // NPCreature Implementation
 NPCreature::NPCreature(float x, float y, int speed, std::shared_ptr<GameSprite> sprite)
 : Creature(x, y, speed, 30, 1, sprite) {
-    m_dx = (rand() % 3 - 1); // -1, 0, or 1
-    m_dy = (rand() % 3 - 1); // -1, 0, or 1
+    do{
+        m_dx = (rand() % 3 - 1); // -1, 0, or 1
+        m_dy = (rand() % 3 - 1); // -1, 0, or 1
+    } while (m_dx == 0 && m_dy == 0);
+    
     normalize();
 
     m_creatureType = AquariumCreatureType::NPCreature;
@@ -104,8 +107,11 @@ void NPCreature::draw() const {
 
 BiggerFish::BiggerFish(float x, float y, int speed, std::shared_ptr<GameSprite> sprite)
 : NPCreature(x, y, speed, sprite) {
+   do{
     m_dx = (rand() % 3 - 1);
     m_dy = (rand() % 3 - 1);
+   } while ( m_dx == 0 && m_dy == 0);
+
     normalize();
 
     setCollisionRadius(60); // Bigger fish have a larger collision radius
@@ -173,6 +179,23 @@ void Aquarium::update() {
     for (auto& creature : m_creatures) {
         creature->move();
     }
+    Repopulate();
+
+    for(size_t i = 0; i < m_creatures.size(); ++i){
+        for(size_t j = i + 1; j < m_creatures.size(); ++j){
+            auto a = m_creatures[i];
+            auto b = m_creatures[j];
+
+            if (a && b && checkCollision(a, b)){
+                a->bounce();
+                b->bounce();
+
+                GameEvent collisionEvent(GameEventType::COLLISION, a, b);
+                collisionEvent.print();
+            }
+        }
+    }
+
     this->Repopulate();
 }
 
@@ -285,6 +308,15 @@ void AquariumGameScene::Update(){
             ofLogVerbose() << "Collision detected between player and NPC!" << std::endl;
             if(event->creatureB != nullptr){
                 event->print();
+
+                float overlapX = m_player->getX() - event->creatureB->getX();
+                float overlapY = m_player->getY() - event->creatureB->getY();
+
+                event->creatureB->setDirection(-overlapX, -overlapY);
+                event->creatureB->normalize();
+                event->creatureB->move();
+
+
                 if(this->m_player->getPower() < event->creatureB->getValue()){
                     ofLogNotice() << "Player is too weak to eat the creature!" << std::endl;
                     this->m_player->loseLife(3*60); // 3 frames debounce, 3 seconds at 60fps
@@ -308,6 +340,7 @@ void AquariumGameScene::Update(){
             } else {
                 ofLogError() << "Error: creatureB is null in collision event." << std::endl;
             }
+
         }
         this->m_aquarium->update();
     }

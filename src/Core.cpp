@@ -12,7 +12,24 @@ void Creature::normalize() {
 }
 
 void Creature::bounce() {
-    // should implement boundary controls here
+    if(m_x - m_collisionRadius < 0){
+        m_x = m_collisionRadius;
+        m_dx = -m_dx;
+    }else if (m_x + m_collisionRadius > m_width){
+        m_x = m_width - m_collisionRadius;
+        m_dx = -m_dx;
+    }
+
+    if(m_y - m_collisionRadius < 0){
+        m_y = m_collisionRadius;
+        m_dy = -m_dy;
+    }else if(m_y + m_collisionRadius > m_height){
+        m_y = m_height - m_collisionRadius;
+        m_dy = -m_dy;
+    }
+    
+
+
 }
 
 
@@ -48,7 +65,15 @@ void GameEvent::print() const {
 
 // collision detection between two creatures
 bool checkCollision(std::shared_ptr<Creature> a, std::shared_ptr<Creature> b) {
-    return false; 
+    
+    if(!a || !b) return false;
+
+    float dx = a->getX() - b->getX();
+    float dy = a->getY() - b->getY();
+    float distance = sqrt(dx * dx + dy * dy);
+    float collisionDistance = a->getCollisionRadius() + b->getCollisionRadius();
+
+    return distance < collisionDistance;
 };
 
 
@@ -58,8 +83,11 @@ string GameSceneKindToString(GameSceneKind t){
         case GameSceneKind::GAME_INTRO: return "GAME_INTRO";
         case GameSceneKind::AQUARIUM_GAME: return "AQUARIUM_GAME";
         case GameSceneKind::GAME_OVER: return "GAME_OVER";
+
+        return "UNKNOWN_SCENE";
     };
-};
+}; 
+    
 
 std::shared_ptr<GameScene> GameSceneManager::GetScene(string name){
     if(!this->HasScenes()){return nullptr;}
