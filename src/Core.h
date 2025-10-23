@@ -32,6 +32,9 @@ public:
         m_flippedImage = m_image;
         m_flippedImage.mirror(false, true); // Mirror horizontally
     }
+    
+    int getWidth() const {return m_image.getWidth(); }
+    int getHeight() const {return m_image.getHeight(); }
 
     void draw(float x, float y) const {
         if (m_flipped) {

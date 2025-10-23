@@ -15,8 +15,14 @@ string AquariumCreatureTypeToString(AquariumCreatureType t){
 
 // PlayerCreature Implementation
 PlayerCreature::PlayerCreature(float x, float y, int speed, std::shared_ptr<GameSprite> sprite)
-: Creature(x, y, speed, 10.0f, 1, sprite) {}
-
+: Creature(x, y, speed, 0.0f, 1, sprite) {
+    if(sprite){
+        float radius = std::max(sprite->getWidth(), sprite->getHeight()) / 2.0f;
+        this->setCollisionRadius(radius);
+    }else {
+        this->setCollisionRadius(10.0f);
+    }
+}
 
 void PlayerCreature::setDirection(float dx, float dy) {
     m_dx = dx;
@@ -49,8 +55,9 @@ void PlayerCreature::draw() const {
         ofSetColor(ofColor::red); // Flash red if in damage debounce
     }
     if (m_sprite) {
-        m_sprite->draw(m_x, m_y);
-    }
+        float offset = m_collisionRadius;
+        m_sprite->draw(m_x - offset, m_y - offset)
+;    }
     ofSetColor(ofColor::white); // Reset color
 
 }
@@ -78,7 +85,7 @@ NPCreature::NPCreature(float x, float y, int speed, std::shared_ptr<GameSprite> 
         m_dx = (rand() % 3 - 1); // -1, 0, or 1
         m_dy = (rand() % 3 - 1); // -1, 0, or 1
     } while (m_dx == 0 && m_dy == 0);
-    
+
     normalize();
 
     m_creatureType = AquariumCreatureType::NPCreature;
@@ -100,7 +107,8 @@ void NPCreature::draw() const {
     ofLogVerbose() << "NPCreature at (" << m_x << ", " << m_y << ") with speed " << m_speed << std::endl;
     ofSetColor(ofColor::white);
     if (m_sprite) {
-        m_sprite->draw(m_x, m_y);
+        float offset = m_collisionRadius;
+        m_sprite->draw(m_x - offset, m_y - offset);
     }
 }
 
@@ -134,7 +142,9 @@ void BiggerFish::move() {
 
 void BiggerFish::draw() const {
     ofLogVerbose() << "BiggerFish at (" << m_x << ", " << m_y << ") with speed " << m_speed << std::endl;
-    this->m_sprite->draw(this->m_x, this->m_y);
+        
+        float offset = m_collisionRadius;
+        m_sprite->draw(m_x - offset, m_y - offset);
 }
 
 
@@ -231,9 +241,18 @@ std::shared_ptr<Creature> Aquarium::getCreatureAt(int index) {
 
 
 void Aquarium::SpawnCreature(AquariumCreatureType type) {
-    int x = rand() % this->getWidth();
-    int y = rand() % this->getHeight();
+    int x = 0;
+    int y = 0;
     int speed = 1 + rand() % 25; // Speed between 1 and 25
+
+    float collisionRadius = 20;
+    if (type == AquariumCreatureType::NPCreature) {
+        collisionRadius = 30;
+    }else if (type == AquariumCreatureType::BiggerFish) {
+        collisionRadius = 60;
+    }
+    x = collisionRadius + rand() % static_cast<int>(m_width - 2 * collisionRadius);
+    y = collisionRadius + rand() % static_cast<int>(m_height - 2 * collisionRadius);
 
     switch (type) {
         case AquariumCreatureType::NPCreature:
