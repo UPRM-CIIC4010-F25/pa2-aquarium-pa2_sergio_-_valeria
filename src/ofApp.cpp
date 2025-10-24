@@ -14,7 +14,7 @@ void ofApp::setup(){
 
     // make the game scene manager 
     gameManager = std::make_unique<GameSceneManager>();
-
+    if (!backgroundMusic.load("background-music.mp3")) ofLogError() << "Failed to load background music!" << std::endl;
 
     // first we make the intro scene 
     gameManager->AddScene(std::make_shared<GameIntroScene>(
@@ -128,6 +128,9 @@ void ofApp::keyPressed(int key){
         {
         case OF_KEY_SPACE:
             gameManager->Transition(GameSceneKindToString(GameSceneKind::AQUARIUM_GAME));
+            backgroundMusic.setLoop(true);
+            backgroundMusic.setVolume(0.1f);
+            backgroundMusic.play();
             break;
         
         default:
