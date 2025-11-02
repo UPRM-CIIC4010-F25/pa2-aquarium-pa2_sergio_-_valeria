@@ -8,6 +8,8 @@ string AquariumCreatureTypeToString(AquariumCreatureType t){
             return "BiggerFish";
         case AquariumCreatureType::NPCreature:
             return "BaseFish";
+        case AquariumCreatureType::PowerUpFish:
+            return "PowerUpFish";
         default:
             return "UknownFish";
     }
@@ -43,6 +45,14 @@ void PlayerCreature::reduceDamageDebounce() {
 }
 
 void PlayerCreature::update() {
+    if (m_powerup_timer > 0) {
+        m_powerup_timer--;
+        if (m_powerup_timer == 0) {
+            // Reset speed when power-up ends
+            m_speed = m_original_speed;
+            ofLogNotice() << "PowerUp expired!" << std::endl;
+        }
+    }
     this->reduceDamageDebounce();
     this->move();
 }
@@ -63,7 +73,11 @@ void PlayerCreature::draw() const {
 }
 
 void PlayerCreature::changeSpeed(int speed) {
+    if (m_powerup_timer == 0) {
+        m_original_speed = m_speed; // Store original speed
+    }
     m_speed = speed;
+    m_powerup_timer = 300; // Power-up lasts for 300 frames
 }
 
 void PlayerCreature::loseLife(int debounce) {
@@ -147,11 +161,110 @@ void BiggerFish::draw() const {
         m_sprite->draw(m_x - offset, m_y - offset);
 }
 
+PowerUpFish::PowerUpFish(float x, float y, int speed, std::shared_ptr<GameSprite> sprite)
+: NPCreature(x, y, speed, sprite) {
+   do{
+    m_dx = (rand() % 3 - 1);
+    m_dy = (rand() % 3 - 1);
+   } while ( m_dx == 0 && m_dy == 0);
+
+    normalize();
+
+    setCollisionRadius(30); // PowerUp fish have a larger collision radius
+    m_value = 0; // 
+    m_creatureType = AquariumCreatureType::PowerUpFish;
+}
+
+void PowerUpFish::move() {
+    // PowerUp fish might move fastest
+    m_x += m_dx * (m_speed * 1.25); // Moves at 1.25x speed
+    m_y += m_dy * (m_speed * 1.25);
+    if(m_dx < 0 ){
+        this->m_sprite->setFlipped(true);
+    }else {
+        this->m_sprite->setFlipped(false);
+    }
+
+    bounce();
+}
+
+void PowerUpFish::draw() const {
+    ofLogVerbose() << "PowerUpFish at (" << m_x << ", " << m_y << ") with speed " << m_speed << std::endl;
+        
+        float offset = m_collisionRadius;
+        m_sprite->draw(m_x - offset, m_y - offset);
+}
+
+// ZigZagFish Implementation
+ZigZagFish::ZigZagFish(float x, float y, int speed, std::shared_ptr<GameSprite> sprite)
+: NPCreature(x, y, speed, sprite) {
+    m_creatureType = AquariumCreatureType::ZigZagFish;
+    setCollisionRadius(30); // ZigZag fish have a standard collision radius
+    m_value = 2;
+}
+
+void ZigZagFish::move() {
+    zigzag_phase += 0.15f;
+    m_x += m_dx * m_speed;
+    m_y += sin(zigzag_phase) * 3.0f; // Zigzag effect
+    bounce();
+    if (m_dx < 0) m_sprite->setFlipped(true);
+    else m_sprite->setFlipped(false);
+}
+
+void ZigZagFish::draw() const {
+    ofLogVerbose() << "ZigZagFish at (" << m_x << ", " << m_y << ") with speed " << m_speed << std::endl;
+
+    float offset = m_collisionRadius;
+    m_sprite->draw(m_x - offset, m_y - offset);
+}
+
+// ChaserFish Implementation
+ChaserFish::ChaserFish(float x, float y, int speed, std::shared_ptr<GameSprite> sprite)
+: NPCreature(x, y, speed, sprite) {
+    m_creatureType = AquariumCreatureType::ChaserFish;
+    setCollisionRadius(40); // Chaser fish have a larger collision radius
+    m_value = 3;
+}
+
+void ChaserFish::move() {
+    if (auto player = m_target){
+        float dx = player->getX() - m_x;
+        float dy = player->getY() - m_y;
+        float distance = std::sqrt(dx * dx + dy * dy);
+
+        if (distance < 200.0f) {
+            m_dx = dx / distance;
+            m_dy = dy / distance;
+            normalize();
+        } else if (ofRandom(1.0f) < 0.02f) {
+            m_dx = ofRandom(-1.0f, 1.0f);
+            m_dy = ofRandom(-1.0f, 1.0f);
+            normalize();
+        }
+    }
+    m_x += m_dx * m_speed * 0.8f; // Slightly slower speed
+    m_y += m_dy * m_speed * 0.8f;
+    bounce();
+    if (m_dx < 0) m_sprite->setFlipped(true);
+    else m_sprite->setFlipped(false);
+}
+
+void ChaserFish::draw() const {
+    ofLogVerbose() << "ChaserFish at (" << m_x << ", " << m_y << ") with speed " << m_speed << std::endl;
+
+    float offset = m_collisionRadius;
+    m_sprite->draw(m_x - offset, m_y - offset);
+}
 
 // AquariumSpriteManager
 AquariumSpriteManager::AquariumSpriteManager(){
     this->m_npc_fish = std::make_shared<GameSprite>("base-fish.png", 70,70);
     this->m_big_fish = std::make_shared<GameSprite>("bigger-fish.png", 120, 120);
+    this->m_powerup_fish = std::make_shared<GameSprite>("powerup-fish.png", 50, 50);
+    this->m_player_fish = std::make_shared<GameSprite>("player-fish.png", 70,70);
+    this->m_zigzag_fish = std::make_shared<GameSprite>("zigzag-fish.png", 60,60);
+    this->m_chaser_fish = std::make_shared<GameSprite>("chaser-fish.png", 80,80);
 }
 
 std::shared_ptr<GameSprite> AquariumSpriteManager::GetSprite(AquariumCreatureType t){
@@ -161,6 +274,16 @@ std::shared_ptr<GameSprite> AquariumSpriteManager::GetSprite(AquariumCreatureTyp
             
         case AquariumCreatureType::NPCreature:
             return std::make_shared<GameSprite>(*this->m_npc_fish);
+
+        case AquariumCreatureType::PowerUpFish:
+            return std::make_shared<GameSprite>(*this->m_powerup_fish);
+
+        case AquariumCreatureType::ZigZagFish:
+            return std::make_shared<GameSprite>(*this->m_zigzag_fish);
+
+        case AquariumCreatureType::ChaserFish:
+            return std::make_shared<GameSprite>(*this->m_chaser_fish);
+
         default:
             return nullptr;
     }
@@ -248,8 +371,14 @@ void Aquarium::SpawnCreature(AquariumCreatureType type) {
     float collisionRadius = 20;
     if (type == AquariumCreatureType::NPCreature) {
         collisionRadius = 30;
-    }else if (type == AquariumCreatureType::BiggerFish) {
+    } else if (type == AquariumCreatureType::PowerUpFish) {
+        collisionRadius = 30;
+    } else if (type == AquariumCreatureType::BiggerFish) {
         collisionRadius = 60;
+    } else if (type == AquariumCreatureType::ZigZagFish) {
+        collisionRadius = 30;
+    } else if (type == AquariumCreatureType::ChaserFish) {
+        collisionRadius = 40;
     }
     x = collisionRadius + rand() % static_cast<int>(m_width - 2 * collisionRadius);
     y = collisionRadius + rand() % static_cast<int>(m_height - 2 * collisionRadius);
@@ -261,6 +390,21 @@ void Aquarium::SpawnCreature(AquariumCreatureType type) {
         case AquariumCreatureType::BiggerFish:
             this->addCreature(std::make_shared<BiggerFish>(x, y, speed, this->m_sprite_manager->GetSprite(AquariumCreatureType::BiggerFish)));
             break;
+        case AquariumCreatureType::PowerUpFish:
+            this->addCreature(std::make_shared<PowerUpFish>(x, y, speed, this->m_sprite_manager->GetSprite(AquariumCreatureType::PowerUpFish)));
+            break;
+        case AquariumCreatureType::ZigZagFish:
+            this->addCreature(std::make_shared<ZigZagFish>(x, y, speed, this->m_sprite_manager->GetSprite(AquariumCreatureType::ZigZagFish)));
+            break;
+        case AquariumCreatureType::ChaserFish: {
+            auto chaser = std::make_shared<ChaserFish>(x, y, speed, this->m_sprite_manager->GetSprite(AquariumCreatureType::ChaserFish));
+            if (m_player) {
+                chaser->setTarget(m_player);
+            }
+            this->addCreature(chaser);
+            break;
+        }
+            
         default:
             ofLogError() << "Unknown creature type to spawn!";
             break;
@@ -320,11 +464,11 @@ void AquariumGameScene::Update(){
     std::shared_ptr<GameEvent> event;
 
     this->m_player->update();
-
+    event = DetectAquariumCollisions(this->m_aquarium, this->m_player);
     if (this->updateControl.tick()) {
-        event = DetectAquariumCollisions(this->m_aquarium, this->m_player);
         if (event != nullptr && event->isCollisionEvent()) {
-            ofLogVerbose() << "Collision detected between player and NPC!" << std::endl;
+            
+            ofLogNotice() << "Collision detected between player and NPC!" << std::endl;
             if(event->creatureB != nullptr){
                 event->print();
 
@@ -335,6 +479,18 @@ void AquariumGameScene::Update(){
                 event->creatureB->normalize();
                 event->creatureB->move();
 
+                auto npcCreature = std::static_pointer_cast<NPCreature>(event->creatureB);
+
+                switch (npcCreature->GetType()){
+                    case AquariumCreatureType::PowerUpFish:
+                        ofLogNotice() << "Player collected a PowerUpFish!" << std::endl;
+                        this->m_player->changeSpeed(this->m_player->getSpeed() * 1.1);
+                        this->m_aquarium->removeCreature(event->creatureB);
+                        break;
+                    default:
+                        break;
+                }
+
 
                 if(this->m_player->getPower() < event->creatureB->getValue()){
                     ofLogNotice() << "Player is too weak to eat the creature!" << std::endl;
@@ -343,15 +499,13 @@ void AquariumGameScene::Update(){
                         this->m_lastEvent = std::make_shared<GameEvent>(GameEventType::GAME_OVER, this->m_player, nullptr);
                         return;
                     }
-                }
-                else{
+                } else {
                     this->m_aquarium->removeCreature(event->creatureB);
                     this->m_player->addToScore(1, event->creatureB->getValue());
                     if (this->m_player->getScore() % 25 == 0){
                         this->m_player->increasePower(1);
                         ofLogNotice() << "Player power increased to " << this->m_player->getPower() << "!" << std::endl;
                     }
-                    
                 }
                 
                 
@@ -359,6 +513,8 @@ void AquariumGameScene::Update(){
             } else {
                 ofLogError() << "Error: creatureB is null in collision event." << std::endl;
             }
+
+        } else if (event->isCreatureAddedEvent()) {
 
         }
         this->m_aquarium->update();
