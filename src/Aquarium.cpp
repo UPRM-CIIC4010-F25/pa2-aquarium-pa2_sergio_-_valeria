@@ -91,6 +91,10 @@ void PlayerCreature::loseLife(int debounce) {
         ofLogVerbose() << "Player is in damage debounce period. Frames left: " << m_damage_debounce << std::endl;
     }
 }
+void PlayerCreature::gainLife() {
+    this->m_lives += 1;
+    ofLogNotice() << "Player gained a life! Lives remaining: " << m_lives << std::endl;
+}
 
 // NPCreature Implementation
 NPCreature::NPCreature(float x, float y, int speed, std::shared_ptr<GameSprite> sprite)
@@ -484,6 +488,7 @@ void AquariumGameScene::Update(){
                 switch (npcCreature->GetType()){
                     case AquariumCreatureType::PowerUpFish:
                         ofLogNotice() << "Player collected a PowerUpFish!" << std::endl;
+                        //this->m_player->gainLife();
                         this->m_player->changeSpeed(this->m_player->getSpeed() * 1.1);
                         this->m_aquarium->removeCreature(event->creatureB);
                         break;
@@ -602,6 +607,32 @@ std::vector<AquariumCreatureType> Level_1::Repopulate() {
 }
 
 std::vector<AquariumCreatureType> Level_2::Repopulate() {
+    std::vector<AquariumCreatureType> toRepopulate;
+    for(std::shared_ptr<AquariumLevelPopulationNode> node : this->m_levelPopulation){
+        int delta = node->population - node->currentPopulation;
+        if(delta >0){
+            for(int i=0; i<delta; i++){
+                toRepopulate.push_back(node->creatureType);
+            }
+            node->currentPopulation += delta;
+        }
+    }
+    return toRepopulate;
+}
+std::vector<AquariumCreatureType> Level_3::Repopulate() {
+    std::vector<AquariumCreatureType> toRepopulate;
+    for(std::shared_ptr<AquariumLevelPopulationNode> node : this->m_levelPopulation){
+        int delta = node->population - node->currentPopulation;
+        if(delta >0){
+            for(int i=0; i<delta; i++){
+                toRepopulate.push_back(node->creatureType);
+            }
+            node->currentPopulation += delta;
+        }
+    }
+    return toRepopulate;
+}
+std::vector<AquariumCreatureType> Level_4::Repopulate() {
     std::vector<AquariumCreatureType> toRepopulate;
     for(std::shared_ptr<AquariumLevelPopulationNode> node : this->m_levelPopulation){
         int delta = node->population - node->currentPopulation;
